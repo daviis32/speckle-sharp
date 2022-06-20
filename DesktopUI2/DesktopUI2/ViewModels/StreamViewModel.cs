@@ -738,7 +738,7 @@ namespace DesktopUI2.ViewModels
           Notification = "Nothing sent!";
         }
 
-        if (Progress.Report.ConversionErrorsCount > 0 || Progress.Report.OperationErrorsCount > 0)
+        if (Progress.Report.GetConversionTotal(Speckle.Core.Models.ProgressReport.ConversionStatus.Failed) > 0 || Progress.Report.OperationErrorsCount > 0)
           ShowReport = true;
 
         GetActivity();
@@ -767,7 +767,7 @@ namespace DesktopUI2.ViewModels
           Analytics.TrackEvent(Analytics.Events.DUIAction, new Dictionary<string, object>() { { "name", "Preview Send" } });
           await Task.Run(() => Bindings.PreviewSend(StreamState, Progress));
         }
-        if (Progress.Report.ConversionErrorsCount > 0 || Progress.Report.OperationErrorsCount > 0)
+        if (Progress.Report.GetConversionTotal(Speckle.Core.Models.ProgressReport.ConversionStatus.Failed) > 0 || Progress.Report.OperationErrorsCount > 0)
           ShowReport = true;
       }
       catch (Exception ex)
@@ -795,7 +795,7 @@ namespace DesktopUI2.ViewModels
           Analytics.TrackEvent(StreamState.Client.Account, Analytics.Events.Receive, new Dictionary<string, object>() { { "mode", StreamState.ReceiveMode }, { "auto", StreamState.AutoReceive } });
         }
 
-        if (Progress.Report.ConversionErrorsCount > 0 || Progress.Report.OperationErrorsCount > 0)
+        if (Progress.Report.GetConversionTotal(Speckle.Core.Models.ProgressReport.ConversionStatus.Failed) > 0 || Progress.Report.OperationErrorsCount > 0)
           ShowReport = true;
 
 
