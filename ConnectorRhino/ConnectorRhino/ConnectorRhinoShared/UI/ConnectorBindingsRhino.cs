@@ -27,6 +27,8 @@ using DesktopUI2.Models.Filters;
 using DesktopUI2.Models.Settings;
 using DesktopUI2.ViewModels;
 
+using ReportObject = Speckle.Core.Models.ProgressReport.ReportObject;
+
 namespace SpeckleRhino
 {
   public partial class ConnectorBindingsRhino : ConnectorBindings
@@ -381,9 +383,11 @@ namespace SpeckleRhino
       if (obj is Base @base)
       {
         var previewObj = new PreviewObject() { Base = @base, Layer = layer };
+        var reportObj = new ReportObject() { ApplicationId = @base.id };
         if (Converter.CanConvertToNative(@base))
         {
           previewObj.Convertible = true;
+          previewObj.ReportObject = reportObj;
           objects.Add(previewObj);
           return objects;
         }
@@ -400,6 +404,7 @@ namespace SpeckleRhino
             if (fallbackObjects.Count > 0)
             {
               previewObj.Display.AddRange(fallbackObjects);
+              previewObj.ReportObject = reportObj;
               foundConvertibleMember = true;
             }
             hasFallback = true;
@@ -429,7 +434,10 @@ namespace SpeckleRhino
           }
 
           if (!foundConvertibleMember && count == totalMembers) // this was an unsupported geo
-            Converter.Report.Log($"Skipped not supported type: { @base.speckle_type }. No convertible elements found: Object {@base.id} not baked.");
+          {
+            reportObj.Update(status: ProgressReport.ConversionStatus.Skipped, message: $"Receiving objects of type {@base.speckle_type} not supported in Rhino", hasError: true);
+            Converter.Report.Log(reportObj);
+          }
 
           return objects;
         }
@@ -459,11 +467,12 @@ namespace SpeckleRhino
     {
       var convertedList = new List<object>();
 
+      var reportObj = new ReportObject() { SpeckleId = obj.id };
       var converted = Converter.ConvertToNative(obj);
       if (converted == null)
       {
-        var exception = new Exception($"Failed to convert object {obj.id} of type {obj.speckle_type}.");
-        Converter.Report.LogConversionError(exception);
+        reportObj.Update(status: ProgressReport.ConversionStatus.failed, message: $"Conversion of {obj.speckle_type} returned Null", hasError: true);
+        Converter.Report.Log(reportObj);
         return convertedList;
       }
 
@@ -506,26 +515,18 @@ namespace SpeckleRhino
 
         // handle display style
         if (obj[@"displayStyle"] is Base display)
-        {
           if (Converter.ConvertToNative(display) is ObjectAttributes displayAttribute)
             attributes = displayAttribute;
-        }
         else if (obj[@"renderMaterial"] is Base renderMaterial)
-        {
           attributes.ColorSource = ObjectColorSource.ColorFromMaterial;
-        }
 
         // assign layer
         attributes.LayerIndex = bakeLayer.Index;
 
-        // TODO: deprecate after awhile, schemas included in user strings. This would be a breaking change.
-        if (obj["SpeckleSchema"] is string schema)
-          attributes.SetUserString("SpeckleSchema", schema);
-
         // handle user strings
-        if (obj[UserStrings] is Dictionary<string, string> userStrings)
+        if (obj[UserStrings] is Dictionary<string, object> userStrings)
           foreach (var key in userStrings.Keys)
-            attributes.SetUserString(key, userStrings[key]);
+            attributes.SetUserString(key, userStrings[key] as string);
 
         // handle user dictionaries
         if (obj[UserDictionary] is Dictionary<string, object> dict)
@@ -594,6 +595,7 @@ namespace SpeckleRhino
           return null;
 
         Base converted = null;
+        ReportObject reportObj = new ReportObject() { ApplicationId = applicationId };
         string containerName = string.Empty;
 
         // applicationId can either be doc obj guid or name of view
@@ -612,14 +614,15 @@ namespace SpeckleRhino
         {
           if (!Converter.CanConvertToSpeckle(obj))
           {
-            progress.Report.Log($"Skipped not supported type:  ${obj.Geometry.ObjectType}");
+            reportObj.Update(status: ProgressReport.ConversionStatus.Skipped, message: $"Sending objects of type {obj.ObjectType} not supported in Rhino", hasError: true);
+            progress.Report.Log(reportObj);
             continue;
           }
           converted = Converter.ConvertToSpeckle(obj);
           if (converted == null)
           {
-            var exception = new Exception($"Failed to convert object ${applicationId} of type ${obj.Geometry.ObjectType}.");
-            progress.Report.LogConversionError(exception);
+            reportObj.Update(status: ProgressReport.ConversionStatus.Failed, message: $"Conversion of {obj.ObjectType} returned Null", hasError: true);
+            progress.Report.Log(reportObj);
             continue;
           }
 
@@ -649,7 +652,8 @@ namespace SpeckleRhino
           converted = Converter.ConvertToSpeckle(view);
           if (converted == null)
           {
-            Converter.Report.LogConversionError(new Exception($"Failed to convert object ${applicationId} of type ${view.GetType()}."));
+            reportObj.Update(status: ProgressReport.ConversionStatus.Failed, message: $"Conversion of {view.GetType()} returned Null", hasError: true);
+            progress.Report.Log(reportObj);
             continue;
           }
           containerName = "Named Views";
@@ -675,6 +679,9 @@ namespace SpeckleRhino
           newSchemaBase.applicationId = applicationId;
           converted["@SpeckleSchema"] = newSchemaBase;
         }
+
+        // log report object
+        reportObj.Update(status: ProgressReport.ConversionStatus.Converted, message: $"Successfully converted Rhino {obj.ObjectType} to Speckle {obj.ObjectType}");
 
         objCount++;
       }
@@ -724,7 +731,7 @@ namespace SpeckleRhino
         streamId = streamId,
         objectId = objectId,
         branchName = state.BranchName,
-        message = state.CommitMessage != null ? state.CommitMessage : $"Pushed {objCount} elements from Rhino.",
+        message = state.CommitMessage != null ? state.CommitMessage : $"Sent {objCount} elements from Rhino.",
         sourceApplication = Utils.RhinoAppName
       };
 
