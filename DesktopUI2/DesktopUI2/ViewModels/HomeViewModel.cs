@@ -697,10 +697,7 @@ namespace DesktopUI2.ViewModels
         theme.SetBaseTheme(Theme.Dark);
 
       materialTheme.CurrentTheme = theme;
-
-
     }
-
 
     public void RefreshCommand()
     {
@@ -708,9 +705,5 @@ namespace DesktopUI2.ViewModels
       ApiUtils.ClearCache();
       Init();
     }
-
-
   }
-
-
 }
