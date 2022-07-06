@@ -248,7 +248,7 @@ namespace Objects.Converter.RhinoGh
         default:
           if (reportObj != null)
           {
-            reportObj.Update(status: ApplicationObject.ConversionStatus.Skipped, logItem: $"{@object.GetType()} type not supported");
+            reportObj.Update(status: ApplicationObject.State.Skipped, logItem: $"{@object.GetType()} type not supported");
             Report.UpdateReportObject(reportObj);
           }
           return @base;
@@ -595,7 +595,7 @@ namespace Objects.Converter.RhinoGh
         default:
           if (reportObj != null)
           {
-            reportObj.Update(status: ApplicationObject.ConversionStatus.Skipped, logItem: $"{@object.GetType()} type not supported");
+            reportObj.Update(status: ApplicationObject.State.Skipped, logItem: $"{@object.GetType()} type not supported");
             Report.UpdateReportObject(reportObj);
           }
           break;
