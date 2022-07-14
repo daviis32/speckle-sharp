@@ -729,6 +729,7 @@ namespace Objects.Converter.RhinoGh
         case InstanceDefinition _:
         case InstanceObject _:
         case TextEntity _:
+        case RH.Dimension _: 
           return true;
 #endif
         default:
@@ -774,6 +775,7 @@ namespace Objects.Converter.RhinoGh
         case Alignment _:
         case RenderMaterial _:
         case Text _:
+        case Dimension _:
           return true;
 #endif
 
