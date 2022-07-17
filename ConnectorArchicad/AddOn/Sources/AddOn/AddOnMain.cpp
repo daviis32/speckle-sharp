@@ -1,9 +1,21 @@
 #include "APIEnvir.h"
 #include "ACAPinc.h"
 
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
+
+#include "Addon.h"
+
 #include "DGModule.hpp"
 #include "Process.hpp"
 #include "ResourceIds.hpp"
+
+#include "MemoryMapped.hpp"
+
+#include "Threading.hpp"
+#include "Thread.hpp"
+#include "Runnable.hpp"
 
 #include "Commands/GetModelForElements.hpp"
 #include "Commands/GetSelectedApplicationIds.hpp"
@@ -139,6 +151,7 @@ static GSErrCode RegisterAddOnCommands()
   CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::CreateZone>()));
   CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::CreateDirectShape>()));
 
+
   return NoError;
 }
 
@@ -155,9 +168,27 @@ GSErrCode __ACDLL_CALL RegisterInterface(void)
   return ACAPI_Register_Menu(AddOnMenuID, 0, MenuCode_Interoperability, MenuFlag_Default);
 }
 
+class MainLoop : public GS::Runnable {
+private:
+    bool running = false;
+    MemoryMapped sharedData;
+    HANDLE sendSemaphore;
+    HANDLE recvSemaphore;
+
+public:
+    MainLoop();
+    virtual void Run() override;
+    void Stop();
+};
+
 GSErrCode __ACENV_CALL Initialize(void)
 {
   CHECKERROR(RegisterAddOnCommands());
+
+  GS::Threading::Initialize();
+
+  GS::Thread thread (new MainLoop, "mainLoop");
+  thread.Start();
 
   return ACAPI_Install_MenuHandler(AddOnMenuID, MenuCommandHandler);
 }
@@ -166,5 +197,36 @@ GSErrCode __ACENV_CALL FreeData(void)
 {
   avaloniaProcess.Stop();
 
+  GS::Threading::Terminate();
+
   return NoError;
+}
+
+MainLoop::MainLoop() :
+    sharedData("connector_ac", 1000000, MemoryMapped::SequentialScan)
+{
+    sendSemaphore = CreateSemaphore(NULL, 0, 2, TEXT("connector_ac_addon"));
+    recvSemaphore = CreateSemaphore(NULL, 0, 2, TEXT("connector_ac_ui"));
+}
+
+void MainLoop::Stop()
+{
+    running = false;
+}
+
+void MainLoop::Run()
+{
+    running = true;
+    while (running) {
+        WaitForSingleObject(recvSemaphore, INFINITE);
+        char* buffer = (char*)sharedData.getData();
+
+        if (buffer) {
+            const char* result = ExecuteAddonCommand(buffer+2);
+
+            sharedData.setData(result, strlen(result));
+
+            ReleaseSemaphore(sendSemaphore, 1, NULL);
+        }
+    }
 }

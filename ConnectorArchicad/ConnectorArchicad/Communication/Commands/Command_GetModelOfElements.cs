@@ -36,8 +36,8 @@ namespace Archicad.Communication.Commands
 
     public async Task<IEnumerable<Model.ElementModelData>> Execute()
     {
-      Result result =
-        await HttpCommandExecutor.Execute<Parameters, Result>("GetModelForElements", new Parameters(ApplicationIds));
+      Result result = CommandComm.Exec<Parameters, Result>("GetModelForElements", new Parameters(ApplicationIds));
+      //Result result =  await HttpCommandExecutor.Execute<Parameters, Result>("GetModelForElements", new Parameters(ApplicationIds));
       return result.Models;
     }
   }

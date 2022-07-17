@@ -215,5 +215,28 @@ namespace AddOnCommands {
 		return StoreModelOfElements(ids.Transform<API_Guid>([](const GS::UniString& idStr) { return APIGuidFromString(idStr.ToCStr()); }));
 	}
 
+	bool GetModelForElements::Execute(const rapidjson::Value& parameters, rapidjson::Document& output)
+	{
+		using namespace rapidjson;
 
+		bool ret = false;
+
+		Document::AllocatorType& allocator = output.GetAllocator();
+
+		if (!parameters.IsNull()) {
+			if (parameters.HasMember("applicationIds")) {
+				const Value& applicationIds = parameters["applicationIds"];
+				GS::Array<API_Guid> ids;
+				//ret = true;
+				for (rapidjson::SizeType i = 0; i < applicationIds.Size(); i++) {
+					ids.Push(APIGuidFromString (applicationIds[i].GetString()));
+				}
+			}
+		}
+
+		
+		output.AddMember("succeeded", Value().SetBool(ret), allocator);
+
+		return true;
+	}
 }
