@@ -6,5 +6,4 @@ namespace Archicad.Communication.Commands
   {
     Task<TResult> Execute();
   }
-
 }
