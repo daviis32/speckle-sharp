@@ -51,7 +51,31 @@ namespace AddOnCommands {
     return retVal;
   }
 
-  bool GetSelectedApplicationIds::Execute(const rapidjson::Value&, rapidjson::Document& output)
+
+
+  GS::Array<API_Guid> Cmd_GetSelectedApplicationIds::GetSelectedElementGuids()
+  {
+      GS::Array<API_Guid>		elementGuids;
+      API_SelectionInfo		selectionInfo;
+      GS::Array<API_Neig>		selNeigs;
+
+      GSErrCode err = ACAPI_Selection_Get(&selectionInfo, &selNeigs, true);
+      if (err == NoError) {
+          if (selectionInfo.typeID != API_SelEmpty) {
+              for (const API_Neig& neig : selNeigs) {
+                  if (Utility::IsElement3D(neig.guid)) {
+                      elementGuids.Push(neig.guid);
+                  }
+              }
+          }
+      }
+
+      BMKillHandle((GSHandle*)&selectionInfo.marquee.coords);
+
+      return elementGuids;
+  }
+
+  bool Cmd_GetSelectedApplicationIds::Execute(const rapidjson::Value&, rapidjson::Document& output)
   {
 	  using namespace rapidjson;
 
@@ -80,4 +104,8 @@ namespace AddOnCommands {
 	  return true;
   }
 
+  std::string Cmd_GetSelectedApplicationIds::GetName() const
+  {
+      return GetSelectedApplicationIdsCommandName;
+  }
 }

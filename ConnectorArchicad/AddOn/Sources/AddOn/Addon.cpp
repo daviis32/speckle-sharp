@@ -6,6 +6,9 @@
 
 #include "stdio.h"
 
+#include "AddonCommand.hpp"
+#include "AddonCommandRegistry.hpp"
+
 #include "GetSelectedApplicationIds.hpp"
 #include "GetModelForElements.hpp"
 
@@ -13,6 +16,7 @@
 const char* ExecuteAddonCommand(const char* inputJson)
 {
 	using namespace rapidjson;
+	using namespace AddOnCommands;
 
 	if (strlen(inputJson) == 0) {
 		return 0;
@@ -36,16 +40,23 @@ const char* ExecuteAddonCommand(const char* inputJson)
 				const std::string apiCmdName = cmdId["commandName"].GetString();
 
 				Value cmdParameters(kObjectType);
-				if (cmdParameters.HasMember("addOnCommandParameters")) {
-					cmdParameters = cmdParameters["addOnCommandParameters"];
+
+				if (addonParameters.HasMember("addOnCommandParameters")) {
+					cmdParameters = addonParameters["addOnCommandParameters"];
 				}
 
-				if (apiCmdName == "GetSelectedApplicationIds") {
-					AddOnCommands::GetSelectedApplicationIds::Execute(cmdParameters, output);
-				} else if (apiCmdName == "GetModelForElements") {
-					AddOnCommands::GetModelForElements::Execute(cmdParameters, output);
+				// TODO
+				AddonCommandRef addonCommand = AddonCommandRegistry::GetInstance().GetCommandByName (apiCmdName);
+				 if (addonCommand) {
+				   addonCommand->Execute (cmdParameters, output);
+				// }
+
+				//if (apiCmdName == "GetSelectedApplicationIds") {
+				//	AddOnCommands::GetSelectedApplicationIds::Execute(cmdParameters, output);
+				//} else if (apiCmdName == "GetModelForElements") {
+				//	AddOnCommands::GetModelForElements::Execute(cmdParameters, output);
 				} else {
-					return "";
+					return "ERROR";
 				}
 			}
 		}

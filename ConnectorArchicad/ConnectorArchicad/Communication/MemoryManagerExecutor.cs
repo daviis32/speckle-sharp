@@ -41,7 +41,7 @@ namespace Archicad.Communication
 
       string responseMsg = SharedMemoryManager.Instance.ExecuteRequest(requestMsg);
 
-      Console.WriteLine("sending response: " + responseMsg + "\n");
+      Console.WriteLine("received response: " + responseMsg + "\n");
 
       AddOnCommandResponse<TResult> response = DeserializeResponse<AddOnCommandResponse<TResult>>(responseMsg);
 

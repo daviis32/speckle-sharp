@@ -29,6 +29,8 @@
 #include "Commands/CreateZone.hpp"
 #include "Commands/CreateDirectShape.hpp"
 
+#include "AddonCommandRegistry.hpp"
+
 
 #define CHECKERROR(f) { GSErrCode err = (f); if (err != NoError) { return err; } }
 
@@ -151,6 +153,10 @@ static GSErrCode RegisterAddOnCommands()
   CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::CreateZone>()));
   CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::CreateDirectShape>()));
 
+  using namespace AddOnCommands;
+
+  AddonCommandRegistry::GetInstance().RegisterCommand(std::shared_ptr<AddonCommand>(new Cmd_GetSelectedApplicationIds()));
+  AddonCommandRegistry::GetInstance().RegisterCommand(std::shared_ptr<AddonCommand>(new Cmd_GetModelForElements()));
 
   return NoError;
 }
